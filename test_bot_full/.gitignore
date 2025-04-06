@@ -1,0 +1,52 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+*.tmp
+
+# VS Code & PyCharm
+.vscode/
+.idea/
+
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# Alembic migrations
+alembic.ini
+migrations/
+
+# Other local files
+AAPL_chart.png
+run_bot.bat
+
+# Jupyter checkpoints
+.ipynb_checkpoints
+
+# Test artifacts
+*.sqlite3
+*.bak
+
+# mypy, tox, coverage
+.mypy_cache/
+.tox/
+.coverage
+coverage.xml
+.cache
+
+# Weather bot folder
+weather_bot/
