@@ -8,7 +8,7 @@ import logging
 def setup_scheduler(bot: Bot):
     scheduler = AsyncIOScheduler()
 
-    @scheduler.scheduled_job("cron", hour=9, minute=58)
+    @scheduler.scheduled_job("cron", hour=9, minute=1)
     async def send_recommendations():
         users = await get_subscribed_users()
 
@@ -28,7 +28,7 @@ def setup_scheduler(bot: Bot):
                     user_id,
                     recommendation,
                     parse_mode="HTML",
-                    disable_web_page_preview=True,
+                    disable_web_page_preview=True, # True False
                     reply_markup=keyboard
                 )
 

@@ -1,3 +1,5 @@
+# 📄 test_bot_full/main.py
+
 import os
 import logging
 import asyncio
@@ -7,22 +9,26 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 
+# 👇 Импорт всех маршрутизаторов
 from test_bot_full.handlers import commands, start, questions, unsubscribe
 from test_bot_full.handlers.results.results_main import router as results_router
 from test_bot_full.handlers.feedback import router as feedback_router
 from test_bot_full.schedule.sender import setup_scheduler
 
-# === Загрузка .env ===
+# === Загрузка переменных окружения из .env ===
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# === Настройка бота ===
+if not TELEGRAM_BOT_TOKEN:
+    raise ValueError("❌ Переменная TELEGRAM_BOT_TOKEN не найдена в .env!")
+
+# === Инициализация бота и диспетчера ===
 bot = Bot(token=TELEGRAM_BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher(storage=MemoryStorage())
 
-# === Подключение роутеров ===
+# === Подключение всех обработчиков ===
 dp.include_routers(
-    commands.router,     # 🟢 Теперь dp уже определён
+    commands.router,
     start.router,
     questions.router,
     unsubscribe.router,
@@ -30,13 +36,15 @@ dp.include_routers(
     feedback_router
 )
 
-# === Запуск ===
+# === Главная точка запуска ===
 async def main():
     logging.basicConfig(level=logging.INFO)
+    logging.info("⏳ Запуск бота...")
     setup_scheduler(bot)
-    logging.info("✅ Бот запущен!")
     await bot.delete_webhook(drop_pending_updates=True)
+    logging.info("✅ Бот запущен!")
     await dp.start_polling(bot)
 
+# === Точка входа ===
 if __name__ == "__main__":
     asyncio.run(main())

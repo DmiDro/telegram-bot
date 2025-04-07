@@ -1,18 +1,23 @@
-# test_bot_full/handlers/questions.py
-
 from aiogram import Router, types, F
 from test_bot_full.tests.loader import get_tests_from_db
 from test_bot_full.utils.keyboards import answer_keyboard
 
 router = Router()
 user_answers = {}
+active_tests = {}  # user_id → True, если тест запущен
 
 # === НАЧАЛО ТЕСТА ===
 @router.callback_query(F.data.startswith("start_"))
 async def start_test(callback: types.CallbackQuery):
-    test_key = callback.data.replace("start_", "")
     user_id = callback.from_user.id
+
+    if active_tests.get(user_id):
+        await callback.answer("Вы уже проходите тест. Завершите его прежде, чем начать новый.", show_alert=True)
+        return
+
+    test_key = callback.data.replace("start_", "")
     user_answers[user_id] = {"test": test_key, "answers": []}
+    active_tests[user_id] = True  # 🔒 блокируем повторный запуск
 
     try:
         await callback.message.delete()

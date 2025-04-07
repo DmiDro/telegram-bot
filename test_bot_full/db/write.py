@@ -1,3 +1,5 @@
+# test_bot_full/db/write.py
+
 import psycopg2
 from datetime import datetime
 
@@ -11,7 +13,6 @@ DB_PARAMS = {
 
 def get_connection():
     return psycopg2.connect(**DB_PARAMS)
-
 
 async def write_result_to_db(user_id: int, username: str, bot_results: dict, test_key: str):
     result = bot_results[user_id].get(test_key)
@@ -47,8 +48,6 @@ async def write_result_to_db(user_id: int, username: str, bot_results: dict, tes
     cur.close()
     conn.close()
 
-
-# 🔁 Обновлённая функция: дата отписки добавляется только если статус NO
 async def update_subscription_status(user_id: int, status: str):
     unsubscribe_date = datetime.now().strftime("%Y-%m-%d") if status == "NO" else None
     conn = get_connection()
@@ -62,7 +61,6 @@ async def update_subscription_status(user_id: int, status: str):
     conn.commit()
     cur.close()
     conn.close()
-
 
 async def get_subscribed_users():
     conn = get_connection()
