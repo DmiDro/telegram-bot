@@ -5,3 +5,6 @@
 __pycache__/
 *.pyc
 *.pyo
+test_bot_full/.env
+test_bot_full/.env.txt
+test_bot_full/google_service_account.json
