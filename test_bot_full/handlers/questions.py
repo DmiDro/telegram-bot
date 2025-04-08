@@ -17,7 +17,7 @@ async def start_test(callback: types.CallbackQuery):
 
     test_key = callback.data.replace("start_", "")
     user_answers[user_id] = {"test": test_key, "answers": []}
-    active_tests[user_id] = True  # 🔒 блокируем повторный запуск
+    active_tests[user_id] = True
 
     try:
         await callback.message.delete()
@@ -26,11 +26,11 @@ async def start_test(callback: types.CallbackQuery):
 
     tests = await get_tests_from_db()
     first_question = tests[test_key]["questions"][0]
-    print("DEBUG TEST DATA:", first_question)
 
     await callback.message.answer(
-        first_question["text"],
-        reply_markup=answer_keyboard(test_key, 0, first_question)
+        f"<b>{first_question['text']}</b>",
+        reply_markup=answer_keyboard(test_key, 0, first_question),
+        parse_mode="HTML"
     )
 
 # === ОБРАБОТКА ОТВЕТОВ ===
@@ -57,12 +57,17 @@ async def handle_answer(callback: types.CallbackQuery):
         if next_index < len(tests[test_key]["questions"]):
             next_question = tests[test_key]["questions"][next_index]
             await callback.message.answer(
-                next_question["text"],
-                reply_markup=answer_keyboard(test_key, next_index, next_question)
+                f"<b>{next_question['text']}</b>",
+                reply_markup=answer_keyboard(test_key, next_index, next_question),
+                parse_mode="HTML"
             )
         else:
             from test_bot_full.handlers.results.results_main import finish_test
             await finish_test(callback.message, user_id, callback.from_user, user_answers)
+
+            # 💡 Очищаем временные данные
+            user_answers.pop(user_id, None)
+            active_tests.pop(user_id, None)
 
     except Exception as e:
         await callback.message.answer("Произошла ошибка при обработке ответа.")

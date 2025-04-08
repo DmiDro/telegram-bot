@@ -1,5 +1,3 @@
-# test_bot_full/db/write.py
-
 import psycopg2
 from datetime import datetime
 
@@ -73,3 +71,32 @@ async def get_subscribed_users():
     cur.close()
     conn.close()
     return [row[0] for row in rows]
+
+# ✅ Новая функция — список пройденных тестов
+async def get_completed_tests(user_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT archetype, emotional_maturity, socionics, character
+        FROM users
+        WHERE user_id = %s
+    """, (user_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return []  # ещё не проходил
+
+    field_map = {
+        0: "archetype",
+        1: "emotional_maturity",
+        2: "socionics",
+        3: "character"
+    }
+
+    completed = []
+    for i, value in enumerate(row):
+        if value not in (None, '', False):
+            completed.append(field_map[i])
+    return completed

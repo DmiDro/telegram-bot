@@ -10,6 +10,7 @@ from test_bot_full.handlers.results.state import bot_results
 from test_bot_full.db.write import write_result_to_db
 from test_bot_full.db.descriptions import get_result_description_from_db
 from test_bot_full.handlers.start import user_menu_messages
+from test_bot_full.handlers.results.message_state import result_messages  # ✨ Новый импорт
 
 router = Router()
 
@@ -44,12 +45,27 @@ async def finish_test(message: types.Message, user_id: int, user: types.User, us
         await message.answer("❌ Описание результата не найдено.")
         return
 
-    try:
-        text = format_result_output(test_key, description_data)
-        await message.answer(text, parse_mode="HTML")
-    except TelegramBadRequest as e:
-        logging.warning(f"⚠️ Ошибка при отправке описания результата: {e}")
-        await message.answer("⚠️ Не удалось отобразить результат.")
+    text = format_result_output(test_key, description_data)
+
+    existing_result_message = result_messages.get(user_id, {}).get(test_key)
+
+    if existing_result_message:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=existing_result_message,
+                text=text,
+                parse_mode="HTML"
+            )
+            logging.info(f"[RESULT] Результат обновлён у пользователя {user_id}")
+        except Exception as e:
+            logging.warning(f"⚠️ Не удалось обновить старый результат: {e}")
+            sent = await message.answer(text, parse_mode="HTML")
+            result_messages.setdefault(user_id, {})[test_key] = sent.message_id
+    else:
+        sent = await message.answer(text, parse_mode="HTML")
+        result_messages.setdefault(user_id, {})[test_key] = sent.message_id
+        logging.info(f"[RESULT] Новый результат отправлен пользователю {user_id}")
 
     # Сохраняем результат
     if user_id not in bot_results:
@@ -64,9 +80,18 @@ async def finish_test(message: types.Message, user_id: int, user: types.User, us
     )
 
     # Обновляем или отправляем новое меню
-    keyboard = await menu_keyboard()
-    text = "Вы можете пройти следующий тест:"
+    keyboard = await menu_keyboard(user_id)
 
+    if not keyboard.inline_keyboard:  # если список кнопок пуст
+        text = (
+            "🎉 <b>Ты прошёл все тесты!</b>\n\n"
+            "Теперь тебя ждут ежедневные литературные рекомендации от великих героев. "
+            "Проверь завтра утром — и пусть каждое утро будет началом вдохновения."
+        )
+    else:
+        text = "Вы можете пройти следующий тест:"
+
+    
     if user_id in user_menu_messages:
         try:
             await message.bot.edit_message_text(
