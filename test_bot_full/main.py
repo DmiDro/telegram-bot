@@ -1,10 +1,14 @@
+# 📄 test_bot_full/main.py
+
 import os
 import logging
 import asyncio
+from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-from dotenv import load_dotenv
+
+# 👇 Импорт всех маршрутизаторов
 from test_bot_full.handlers import commands, start, questions, unsubscribe
 from test_bot_full.handlers.results.results_main import router as results_router
 from test_bot_full.handlers.feedback import router as feedback_router
@@ -16,6 +20,7 @@ load_dotenv()
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Получение токена бота
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 if not TELEGRAM_BOT_TOKEN:
@@ -51,6 +56,10 @@ async def on_start():
 
 # === Для gunicorn ===
 if __name__ == "__main__":
-    app = dp
-    # Для асинхронного запуска бота:
-    # asyncio.run(on_start())
+    try:
+        app = dp  # Для gunicorn необходимо использовать эту переменную
+        logging.info("⏳ Запуск через gunicorn...")
+        # Для асинхронного запуска бота:
+        # asyncio.run(on_start())
+    except Exception as e:
+        logging.error(f"Ошибка при запуске приложения: {str(e)}")
