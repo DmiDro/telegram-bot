@@ -15,9 +15,6 @@ from test_bot_full.handlers.results.results_main import router as results_router
 from test_bot_full.handlers.feedback import router as feedback_router
 from test_bot_full.schedule.sender import setup_scheduler
 
-# === Импорт подключения к базе данных ===
-from test_bot_full.db_connect import get_connection
-
 # === Загрузка переменных окружения из .env ===
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -40,15 +37,7 @@ dp.include_routers(
 )
 
 # === Главная точка запуска ===
-async def main():
-    # Подключение к базе данных для теста
-    try:
-        connection = get_connection()
-        logging.info("✅ Успешное подключение к базе данных!")
-        connection.close()
-    except Exception as e:
-        logging.error(f"❌ Ошибка подключения к базе данных: {e}")
-
+async def on_start():
     logging.basicConfig(level=logging.INFO)
     logging.info("⏳ Запуск бота...")
     setup_scheduler(bot)
@@ -56,6 +45,10 @@ async def main():
     logging.info("✅ Бот запущен!")
     await dp.start_polling(bot)
 
-# === Точка входа ===
+# === Для gunicorn ===
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Для gunicorn необходимо использовать эту переменную
+    app = dp
+
+    # Если вам нужно использовать asyncio:
+    # asyncio.run(on_start())
