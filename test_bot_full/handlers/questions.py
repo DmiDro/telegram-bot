@@ -1,6 +1,6 @@
 from aiogram import Router, types, F
-from test_bot_full.tests.loader import get_tests_from_db
-from test_bot_full.utils.keyboards import answer_keyboard
+from tests.loader import get_tests_from_db
+from utils.keyboards import answer_keyboard
 
 router = Router()
 user_answers = {}
