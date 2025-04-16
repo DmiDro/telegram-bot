@@ -1,29 +1,28 @@
+# 📄 Файл: test_bot_full/db/write.py
+
 import os
 import asyncpg
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Загрузка переменных окружения
+# Загружаем переменные окружения (локально)
 load_dotenv()
 
-# Переменные для подключения к базе данных
-DB_PARAMS = {
-    "dbname": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT")
-}
+# Используем строку подключения DATABASE_URL
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Асинхронное подключение к базе данных
+
+# 🔌 Асинхронное подключение
 async def get_connection():
-    return await asyncpg.connect(**DB_PARAMS)
+    return await asyncpg.connect(DATABASE_URL)
 
-# Функция для обработки значений None
+
+# ✅ Универсальный null-обработчик
 def nullify(value):
     return value if value and str(value).strip() != "" else None
 
-# Запись результата в базу данных
+
+# 💾 Запись результатов в таблицу users
 async def write_result_to_db(user_id: int, username: str, bot_results: dict, test_key: str):
     result = bot_results[user_id].get(test_key)
 
@@ -57,25 +56,30 @@ async def write_result_to_db(user_id: int, username: str, bot_results: dict, tes
 
     await conn.close()
 
-# Получение всех test_key из таблицы intro
+
+# 🧠 Получение названий тестов (например, для меню)
 async def get_intro_titles():
     conn = await get_connection()
     try:
         rows = await conn.fetch("SELECT test_key, title FROM intro")
+        return {row['test_key']: row['title'] for row in rows}
     finally:
         await conn.close()
-    return {row['test_key']: row['title'] for row in rows}
 
-# Получение всех ключей тестов (например, для меню)
+
+# 📋 Список тестов
 async def get_tests_from_db():
     conn = await get_connection()
-    rows = await conn.fetch("SELECT DISTINCT test_key FROM emotional_maturity")  # пример
-    await conn.close()
-    return [row['test_key'] for row in rows]
+    try:
+        rows = await conn.fetch("SELECT DISTINCT test_key FROM intro")
+        return [row['test_key'] for row in rows]
+    finally:
+        await conn.close()
 
-# Обновление статуса подписки
+
+# 🔁 Обновление подписки
 async def update_subscription_status(user_id: int, status: str):
-    unsubscribe_date = datetime.now().strftime("%Y-%m-%d")
+    unsubscribe_date = datetime.now().strftime("%Y-%m-%d") if status == "NO" else None
 
     conn = await get_connection()
     try:
@@ -88,12 +92,15 @@ async def update_subscription_status(user_id: int, status: str):
     finally:
         await conn.close()
 
-# Получение списка подписанных пользователей
+
+# 📤 Список активных пользователей
 async def get_subscribed_users():
     conn = await get_connection()
-    rows = await conn.fetch("""
-        SELECT user_id FROM users
-        WHERE subscription_status = 'YES'
-    """)
-    await conn.close()
-    return [row['user_id'] for row in rows]
+    try:
+        rows = await conn.fetch("""
+            SELECT user_id FROM users
+            WHERE subscription_status = 'YES'
+        """)
+        return [row['user_id'] for row in rows]
+    finally:
+        await conn.close()
