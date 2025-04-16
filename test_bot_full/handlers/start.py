@@ -1,13 +1,19 @@
 import logging
 from aiogram import Router, types
 from aiogram.filters import Command
+
 from utils.keyboards import menu_keyboard
-from utils.keyboards import answer_keyboard
+from db.write import get_completed_tests  # ✅ доступ к БД
 
 router = Router()
 
 # Храним последнее меню (user_id -> message_id)
 user_menu_messages = {}
+
+# ✅ Проверка: это первый запуск пользователя или нет
+async def is_first_launch(user_id: int) -> bool:
+    completed = await get_completed_tests(user_id)
+    return len(completed) == 0
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -37,7 +43,7 @@ async def cmd_start(message: types.Message):
         else:
             text = "Привет! Готов пройти тест?"
 
-        keyboard = await menu_keyboard()
+        keyboard = await menu_keyboard(user_id)
 
         # Удаляем предыдущее меню, если было
         if user_id in user_menu_messages:
