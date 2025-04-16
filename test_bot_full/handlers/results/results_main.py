@@ -4,13 +4,13 @@ import logging
 from aiogram import Router, types
 from aiogram.exceptions import TelegramBadRequest
 
-from test_bot_full.utils.keyboards import menu_keyboard
-from test_bot_full.handlers.results.interpreters import interpret_results
+from utils.keyboards import menu_keyboard
+from handlers.results.interpreters import interpret_results
 from db.write import write_result_to_db, update_subscription_status
-from test_bot_full.db.write import write_result_to_db
-from test_bot_full.db.descriptions import get_result_description_from_db
-from test_bot_full.handlers.start import user_menu_messages
-from test_bot_full.handlers.results.message_state import result_messages  # ✨ Новый импорт
+from db.descriptions import get_result_description_from_db
+from handlers.start import user_menu_messages
+from handlers.results.message_state import result_messages
+
 
 router = Router()
 
