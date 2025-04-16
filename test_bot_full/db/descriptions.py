@@ -28,16 +28,14 @@ async def get_result_description_from_db(test_key: str, result_code: str) -> dic
 
     query = f"SELECT * FROM {table_name} WHERE key = $1"
 
+    conn = None
     try:
         conn = await asyncpg.connect(**DB_PARAMS)
         row = await conn.fetchrow(query, result_code)
-        await conn.close()
-
         if not row:
             print(f"❌ Результат {result_code} не найден в таблице {table_name}")
             return {}
 
-        # Безопасное извлечение с fallback
         return {
             "name": row.get("name", result_code),
             "title": row.get("title", ""),
@@ -49,3 +47,7 @@ async def get_result_description_from_db(test_key: str, result_code: str) -> dic
     except Exception as e:
         print(f"❌ Ошибка при получении описания результата: {e}")
         return {}
+
+    finally:
+        if conn:
+            await conn.close()
