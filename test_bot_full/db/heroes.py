@@ -14,11 +14,14 @@ DB_PARAMS = {
 
 # 📚 Получение списка героев из таблицы heroes
 async def get_hero_list() -> list[dict]:
+    conn = None
     try:
         conn = await asyncpg.connect(**DB_PARAMS)
         rows = await conn.fetch("SELECT name, description, link FROM heroes")
-        await conn.close()
         return [dict(row) for row in rows]
     except Exception as e:
         print(f"❌ Ошибка при загрузке героев: {e}")
         return []
+    finally:
+        if conn:
+            await conn.close()
