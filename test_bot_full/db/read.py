@@ -1,6 +1,9 @@
-import psycopg2
-from test_bot_full.db.write import get_connection
+# 📄 Файл: db/read.py
 
+import psycopg2
+from db.write import get_connection  # 🔄 Убрали test_bot_full
+
+# ✅ Проверка: является ли пользователь новым (ещё не проходил ни одного теста)
 async def is_first_launch(user_id: int) -> bool:
     conn = get_connection()
     cur = conn.cursor()
