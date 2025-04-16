@@ -2,7 +2,7 @@ import os
 import random
 from dotenv import load_dotenv
 from openai import OpenAI
-from test_bot_full.db import get_hero_list  # 👈 список героев из БД
+from db import get_hero_list  # 👈 список героев из БД
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
