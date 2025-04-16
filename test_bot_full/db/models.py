@@ -1,5 +1,8 @@
-from test_bot_full.db.db_connect import get_connection
+# 📄 Файл: db/insert_user.py (или другое название, если ты скажешь)
 
+from db.db_connect import get_connection  # 🔄 Удалили test_bot_full
+
+# ✅ Вставка или обновление информации о пользователе и результатах тестов
 def insert_or_update_user(data: dict):
     conn = get_connection()
     cur = conn.cursor()
