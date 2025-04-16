@@ -1,6 +1,6 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from test_bot_full.utils.gpt import generate_daily_recommendation
-from test_bot_full.db import get_subscribed_users
+from utils.gpt import generate_daily_recommendation
+from db.results import get_subscribed_users  # если ты хранишь функцию тут
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
