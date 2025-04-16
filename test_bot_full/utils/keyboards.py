@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 from db.results import get_tests_from_db, get_intro_titles
-from test_bot_full.db.write import get_connection
+from db.write import get_connection  # ✅ Исправленный импорт
 
 
 # 📌 Получение списка уже пройденных тестов пользователем
@@ -27,7 +28,7 @@ async def get_completed_tests(user_id: int) -> set:
     }
 
 
-# 📌 Меню с кнопками выбора тестов
+# 📌 Клавиатура меню с кнопками тестов
 async def menu_keyboard(user_id: int = None) -> InlineKeyboardMarkup:
     test_intros = await get_intro_titles()
     test_keys = await get_tests_from_db()
@@ -49,7 +50,7 @@ async def menu_keyboard(user_id: int = None) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-# 📌 Клавиатура с вариантами ответов на вопрос (широкие кнопки)
+# 📌 Клавиатура с вариантами ответов
 def answer_keyboard(test_key: str, question_index: int, question_data: dict) -> InlineKeyboardMarkup:
     print(f"DEBUG: Вопрос {question_index} → {question_data}")
     options = question_data.get("options")
@@ -67,7 +68,7 @@ def answer_keyboard(test_key: str, question_index: int, question_data: dict) -> 
         else:
             text = str(opt)
 
-        padded_text = f" {text} "  # em-spaces (U+2003)
+        padded_text = f" {text} "  # em-spaces для красивого вида
         buttons.append([
             InlineKeyboardButton(
                 text=padded_text,
