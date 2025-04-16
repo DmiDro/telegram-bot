@@ -1,6 +1,6 @@
 from aiogram import Router, types, F
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from test_bot_full.db.write import update_subscription_status
+from db.write import update_subscription_status
 
 router = Router()
 
