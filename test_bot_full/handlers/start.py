@@ -2,7 +2,7 @@ import logging
 from aiogram import Router, types
 from aiogram.filters import Command
 from test_bot_full.utils.keyboards import menu_keyboard
-from test_bot_full.db.status import is_first_launch
+from utils.keyboards import answer_keyboard
 
 router = Router()
 
