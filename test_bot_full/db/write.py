@@ -1,16 +1,13 @@
+import os
 import psycopg2
 from datetime import datetime
+from dotenv import load_dotenv
 
-DB_PARAMS = {
-    "dbname": "telegram_bot_chg",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "localhost",
-    "port": "5432"
-}
+load_dotenv()
 
 def get_connection():
-    return psycopg2.connect(**DB_PARAMS)
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
+
 
 async def write_result_to_db(user_id: int, username: str, bot_results: dict, test_key: str):
     result = bot_results[user_id].get(test_key)
@@ -46,6 +43,7 @@ async def write_result_to_db(user_id: int, username: str, bot_results: dict, tes
     cur.close()
     conn.close()
 
+
 async def update_subscription_status(user_id: int, status: str):
     unsubscribe_date = datetime.now().strftime("%Y-%m-%d") if status == "NO" else None
     conn = get_connection()
@@ -60,6 +58,7 @@ async def update_subscription_status(user_id: int, status: str):
     cur.close()
     conn.close()
 
+
 async def get_subscribed_users():
     conn = get_connection()
     cur = conn.cursor()
@@ -72,7 +71,7 @@ async def get_subscribed_users():
     conn.close()
     return [row[0] for row in rows]
 
-# ✅ Новая функция — список пройденных тестов
+
 async def get_completed_tests(user_id: int):
     conn = get_connection()
     cur = conn.cursor()
@@ -86,7 +85,7 @@ async def get_completed_tests(user_id: int):
     conn.close()
 
     if not row:
-        return []  # ещё не проходил
+        return []
 
     field_map = {
         0: "archetype",
@@ -95,8 +94,5 @@ async def get_completed_tests(user_id: int):
         3: "character"
     }
 
-    completed = []
-    for i, value in enumerate(row):
-        if value not in (None, '', False):
-            completed.append(field_map[i])
+    completed = [field_map[i] for i, val in enumerate(row) if val not in (None, '', False)]
     return completed
