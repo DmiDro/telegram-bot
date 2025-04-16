@@ -2,32 +2,25 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv()  # Загружает переменные из .env (только локально, на Railway не нужен)
+load_dotenv()  # Локально подхватит .env, на Railway переменные уже в окружении
 
 def get_connection():
-    # Подключение к PostgreSQL через переменные окружения
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD")
-    )
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
 
+# ✅ Дополнительная проверка соединения
 def test_connection():
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
-        cursor.execute("SELECT * FROM public.users LIMIT 10;")
-        rows = cursor.fetchall()
-
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM public.users LIMIT 10;")
+        rows = cur.fetchall()
         for row in rows:
             print(row)
-
-        cursor.close()
-        connection.close()
+        cur.close()
+        conn.close()
     except Exception as e:
-        print("Ошибка подключения:", e)
+        print("❌ Ошибка подключения к базе данных:", e)
 
+# Локальный тест
 if __name__ == "__main__":
     test_connection()
