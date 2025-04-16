@@ -8,10 +8,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
 # Импорт всех маршрутизаторов
-from test_bot_full.handlers import commands, start, questions, unsubscribe
-from test_bot_full.handlers.results.results_main import router as results_router
-from test_bot_full.handlers.feedback import router as feedback_router
-from test_bot_full.schedule.sender import setup_scheduler
+from handlers import commands, start, questions, unsubscribe
+from handlers.results.results_main import router as results_router
+from handlers.feedback import router as feedback_router
+from schedule.sender import setup_scheduler
+
 
 # === Загрузка переменных окружения из .env ===
 load_dotenv()
