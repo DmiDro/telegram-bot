@@ -4,13 +4,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PARAMS = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_NAME"),
-    "host": os.getenv("DB_HOST"),
-    "port": int(os.getenv("DB_PORT", 5432))
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+async def get_tests_from_db() -> dict:
+    conn = await asyncpg.connect(DATABASE_URL)
+    rows = await conn.fetch("SELECT * FROM tests")
+    await conn.close()
+
+    # Преобразуем в словарь {key: {…}}
+    tests = {}
+    for row in rows:
+        tests[row["key"]] = dict(row)
+    return tests
+
 
 
 async def get_tests_from_db() -> dict:
