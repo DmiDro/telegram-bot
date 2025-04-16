@@ -2,13 +2,21 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv()  # Локально подхватит .env, на Railway переменные уже в окружении
+# Загружаем переменные окружения из .env (только для локальной разработки)
+load_dotenv()
 
 def get_connection():
+    """
+    Создаёт подключение к PostgreSQL с использованием DATABASE_URL.
+    Railway автоматически предоставляет эту переменную в окружении.
+    """
     return psycopg2.connect(os.getenv("DATABASE_URL"))
 
-# ✅ Дополнительная проверка соединения
 def test_connection():
+    """
+    Простой тест подключения к БД.
+    Показывает первые 10 строк из таблицы users.
+    """
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -18,6 +26,7 @@ def test_connection():
             print(row)
         cur.close()
         conn.close()
+        print("✅ Подключение успешно")
     except Exception as e:
         print("❌ Ошибка подключения к базе данных:", e)
 
