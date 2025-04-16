@@ -3,7 +3,7 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.types import Message
-from test_bot_full.utils.keyboards import menu_keyboard, unsubscribe_confirmation_keyboard
+from utils.keyboards import menu_keyboard, unsubscribe_confirmation_keyboard
 
 router = Router()
 
