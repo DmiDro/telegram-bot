@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from test_bot_full.db.results import get_tests_from_db, get_intro_titles
+from db.results import get_tests_from_db, get_intro_titles
 from test_bot_full.db.write import get_connection
 
 

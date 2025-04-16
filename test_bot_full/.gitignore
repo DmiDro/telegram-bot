@@ -20,6 +20,11 @@ dist/
 .vscode/
 .idea/
 
+# Секреты и ключи
+test_bot_full/.env.txt
+test_bot_full/google_service_account.json
+
+
 # Environment
 .env
 .venv/
