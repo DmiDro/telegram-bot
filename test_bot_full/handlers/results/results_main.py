@@ -6,7 +6,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 from test_bot_full.utils.keyboards import menu_keyboard
 from test_bot_full.handlers.results.interpreters import interpret_results
-from test_bot_full.handlers.results.state import bot_results
+from db.write import write_result_to_db, update_subscription_status
 from test_bot_full.db.write import write_result_to_db
 from test_bot_full.db.descriptions import get_result_description_from_db
 from test_bot_full.handlers.start import user_menu_messages
