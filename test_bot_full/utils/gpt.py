@@ -7,14 +7,23 @@ from db import get_hero_list  # 👈 список героев из БД
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if not OPENAI_API_KEY:
+    logging.error("❌ OPENAI_API_KEY не найден в переменных окружения!")
+else:
+    logging.info("🔑 OPENAI_API_KEY загружен.")
+
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
+    logging.info(f"🚀 Генерация послания для user_id: {user_id}")
+    
     heroes = await get_hero_list()
     if not heroes:
         logging.warning("⚠️ Персонажи не загружены из БД")
         return "⚠️ Персонажи не загружены. Попробуйте позже."
+
+    logging.info(f"✅ Загрузили {len(heroes)} героев из базы.")
 
     char = random.choice(heroes)
     name = char["name"]
@@ -38,11 +47,12 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
 """
 
     try:
+        logging.info(f"📤 Отправка prompt в OpenAI для героя: {name}")
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt.strip()}]
         )
-        logging.info(f"📦 Ответ OpenAI: {response}")
+        logging.info("📦 Ответ от OpenAI получен")
 
         advice = response.choices[0].message.content.strip()
         logging.info(f"🖍️ Сгенерированное послание:\n{advice}")
