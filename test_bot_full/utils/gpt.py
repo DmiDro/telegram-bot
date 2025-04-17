@@ -1,5 +1,6 @@
 import os
 import random
+import logging
 from dotenv import load_dotenv
 from openai import OpenAI
 from db import get_hero_list  # 👈 список героев из БД
@@ -12,12 +13,14 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
     heroes = await get_hero_list()
     if not heroes:
+        logging.warning("⚠️ Персонажи не загружены из БД")
         return "⚠️ Персонажи не загружены. Попробуйте позже."
 
     char = random.choice(heroes)
     name = char["name"]
     description = char["description"]
     link = char.get("link", "")
+
     signature_html = f'<a href="{link}">{name}</a>' if link else name
 
     prompt = f"""
@@ -37,11 +40,12 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "user", "content": prompt.strip()}
-            ]
+            messages=[{"role": "user", "content": prompt.strip()}]
         )
+        logging.info(f"📦 Ответ OpenAI: {response}")
+
         advice = response.choices[0].message.content.strip()
+        logging.info(f"🖍️ Сгенерированное послание:\n{advice}")
 
         return (
             f"🕊 <b>Послание на сегодня:</b>\n\n"
@@ -51,4 +55,5 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
         )
 
     except Exception as e:
+        logging.error(f"❌ Ошибка генерации рекомендации: {e}")
         return f"⚠️ Ошибка генерации рекомендации: {e}"
