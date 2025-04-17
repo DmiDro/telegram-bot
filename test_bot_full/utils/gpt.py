@@ -1,11 +1,12 @@
 import os
 import random
-import openai
 from dotenv import load_dotenv
-from db import get_hero_list
+from openai import OpenAI
+from db import get_hero_list  # 👈 список героев из БД
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
@@ -34,9 +35,11 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
 """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role": "user", "content": prompt.strip()}]
+            messages=[
+                {"role": "user", "content": prompt.strip()}
+            ]
         )
         advice = response.choices[0].message.content.strip()
 
