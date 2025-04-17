@@ -1,7 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
-import datetime
+from datetime import datetime, timedelta
 import logging
 
 from utils.gpt import generate_daily_recommendation
@@ -14,9 +14,10 @@ def setup_scheduler(bot: Bot):
 
     scheduler = AsyncIOScheduler(timezone=timezone("Europe/Istanbul"))
 
-    @scheduler.scheduled_job(CronTrigger(hour=12, minute=10))
+    # 🕰 Основная ежедневная задача (например, в 09:01 по Стамбулу)
+    @scheduler.scheduled_job(CronTrigger(hour=9, minute=1))
     async def send_recommendations():
-        now = datetime.datetime.now(timezone("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M:%S")
+        now = datetime.now(timezone("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M:%S")
         logging.info(f"🚀 ЗАДАНИЕ ВЫПОЛНЯЕТСЯ! Время (Стамбул): {now}")
 
         users = await get_subscribed_users()
@@ -45,5 +46,14 @@ def setup_scheduler(bot: Bot):
             except Exception as e:
                 logging.warning(f"⚠️ Не удалось отправить пользователю {user_id}: {e}")
 
+    # 🧪 Тестовая задача (один раз через 1 минуту после запуска)
+    @scheduler.scheduled_job(
+        "date",
+        run_date=datetime.now(timezone("Europe/Istanbul")) + timedelta(minutes=1)
+    )
+    async def test_job():
+        now = datetime.now(timezone("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M:%S")
+        logging.info(f"🧪 Тестовая задача выполнена в {now}! Планировщик работает.")
+
     scheduler.start()
-    logging.info("✅ Планировщик запущен (Europe/Istanbul, 11:15)")
+    logging.info("✅ Планировщик запущен (Europe/Istanbul)")
