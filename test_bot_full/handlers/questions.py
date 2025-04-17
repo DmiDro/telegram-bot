@@ -62,7 +62,7 @@ async def handle_answer(callback: types.CallbackQuery):
                 parse_mode="HTML"
             )
         else:
-            from test_bot_full.handlers.results.results_main import finish_test
+            from handlers.results.results_main import finish_test
             await finish_test(callback.message, user_id, callback.from_user, user_answers)
 
             # 💡 Очищаем временные данные
