@@ -1,7 +1,8 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
-import datetime
+from datetime import datetime
+import time
 import logging
 
 from utils.gpt import generate_daily_recommendation
@@ -12,12 +13,21 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def setup_scheduler(bot: Bot):
     logging.info("🟡 Настройка планировщика...")
 
-    scheduler = AsyncIOScheduler(timezone=timezone("Europe/Istanbul"))
+    tz_istanbul = timezone("Europe/Istanbul")
 
-    @scheduler.scheduled_job(CronTrigger(hour=13, minute=44))
+    # Показываем текущее время для диагностики
+    logging.info(f"🕰️ Системное UTC время: {datetime.utcnow()}")
+    logging.info(f"🕰️ Локальное время (Europe/Istanbul): {datetime.now(tz_istanbul)}")
+    logging.info(f"🕰️ time.time(): {time.time()}")
+
+    scheduler = AsyncIOScheduler(timezone=tz_istanbul)
+
+    @scheduler.scheduled_job(
+        CronTrigger(hour=13, minute=59, timezone=tz_istanbul)  # Явно указываем таймзону!
+    )
     async def send_recommendations():
-        istanbul_time = datetime.datetime.now(timezone("Europe/Istanbul"))
-        logging.info(f"📅 Планировщик сработал: {istanbul_time.strftime('%Y-%m-%d %H:%M:%S')} (Europe/Istanbul)")
+        now = datetime.now(tz_istanbul).strftime("%Y-%m-%d %H:%M:%S")
+        logging.info(f"📅 Планировщик сработал в {now} (Europe/Istanbul)")
 
         users = await get_subscribed_users()
         logging.info(f"👥 Пользователей для рассылки: {len(users)}")
@@ -27,9 +37,9 @@ def setup_scheduler(bot: Bot):
                 logging.info(f"📤 Отправка пользователю: {user_id}")
                 recommendation = await generate_daily_recommendation(user_id)
 
-                keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[[ 
                     InlineKeyboardButton(text="👍", callback_data="feedback_like"),
-                    InlineKeyboardButton(text="👎", callback_data="feedback_dislike")
+                    InlineKeyboardButton(text="👎", callback_data="feedback_dislike"),
                 ]])
 
                 await bot.send_message(
