@@ -10,6 +10,58 @@ from db.write import write_result_to_db, update_subscription_status
 from db.descriptions import get_result_description_from_db
 from handlers.start import user_menu_messages
 from handlers.results.message_state import result_messages
+import logging
+from aiogram import Router, types
+from aiogram.exceptions import TelegramBadRequest
+
+from utils.keyboards import menu_keyboard
+from handlers.results.interpreters import interpret_results
+from db.write import write_result_to_db, update_subscription_status
+from db.descriptions import get_result_description_from_db
+from handlers.start import user_menu_messages
+from handlers.results.message_state import result_messages
+from handlers.results.state import bot_results  # ⬅️ Добавили импорт
+
+router = Router()
+
+# === ЗАВЕРШЕНИЕ ТЕСТА ===
+async def finish_test(message: types.Message, user_id: int, user: types.User, user_answers: dict):
+    try:
+        test_key = user_answers[user_id]["test"]
+        answers = user_answers[user_id]["answers"]
+        logging.info(f"[RESULT] Завершён тест: {test_key} — Ответы: {answers}")
+
+        result_code = interpret_results(test_key, answers)
+        logging.info(f"[RESULT] Подсчитан результат: {result_code}")
+
+        bot_results.setdefault(user_id, {})[test_key] = result_code
+
+        description = await get_result_description_from_db(test_key, result_code)
+        logging.info(f"[RESULT] Описание результата получено: {bool(description)}")
+
+        await write_result_to_db(user_id, user.username or "", bot_results, test_key)
+
+        msg_lines = [
+            f"<b>{description.get('title', '')}</b>",
+            f"<i>     {description.get('summary', '')}</i>"
+        ]
+
+        if test_key == "socionics":
+            msg_lines.append(f"<i>     {description.get('description', '')}</i>")
+
+        result_text = "\n\n".join(msg_lines)
+
+        await message.answer(result_text, parse_mode="HTML")
+
+        keyboard = await menu_keyboard(user_id)
+        sent = await message.answer("Хочешь пройти ещё один?", reply_markup=keyboard)
+        user_menu_messages[user_id] = sent.message_id
+        logging.info(f"[RESULT] Новый результат отправлен пользователю {user_id}")
+
+    except Exception as e:
+        logging.error(f"[RESULT] Ошибка при завершении теста: {e}")
+        await message.answer("⚠️ Ошибка при завершении теста.")
+
 
 
 router = Router()
