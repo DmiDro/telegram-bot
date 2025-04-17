@@ -22,7 +22,7 @@ if not TELEGRAM_BOT_TOKEN:
 
 # === Настройка логгера ===
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 
