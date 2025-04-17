@@ -14,7 +14,7 @@ def setup_scheduler(bot: Bot):
     scheduler = AsyncIOScheduler(timezone=timezone("Europe/Moscow"))  # 🕘 Москва
 
     @scheduler.scheduled_job(
-        CronTrigger(hour=10, minute=45)  # 10:45 по Москве
+        CronTrigger(hour=10, minute=55)  # 10:55 по Москве
     )
     async def send_recommendations():
         users = await get_subscribed_users()
@@ -44,4 +44,4 @@ def setup_scheduler(bot: Bot):
                 logging.warning(f"⚠️ Не удалось отправить {user_id}: {e}")
 
     scheduler.start()
-    logging.info("✅ Планировщик запущен (МСК 09:08)")
+    logging.info("✅ Планировщик запущен (МСК 10:55)")
