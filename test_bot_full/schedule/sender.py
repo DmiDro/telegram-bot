@@ -1,7 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
-from datetime import datetime, timedelta
+import datetime
 import logging
 
 from utils.gpt import generate_daily_recommendation
@@ -14,18 +14,17 @@ def setup_scheduler(bot: Bot):
 
     scheduler = AsyncIOScheduler(timezone=timezone("Europe/Istanbul"))
 
-    # 🕰 Основная ежедневная задача (например, в 09:01 по Стамбулу)
-    @scheduler.scheduled_job(CronTrigger(hour=13, minute=25))
+    @scheduler.scheduled_job(CronTrigger(hour=13, minute=38))
     async def send_recommendations():
-        now = datetime.now(timezone("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M:%S")
-        logging.info(f"🚀 ЗАДАНИЕ ВЫПОЛНЯЕТСЯ! Время (Стамбул): {now}")
+        istanbul_time = datetime.datetime.now(timezone("Europe/Istanbul"))
+        logging.info(f"📅 Планировщик сработал: {istanbul_time.strftime('%Y-%m-%d %H:%M:%S')} (Europe/Istanbul)")
 
         users = await get_subscribed_users()
-        logging.info(f"👥 Найдено пользователей для рассылки: {len(users)}")
+        logging.info(f"👥 Пользователей для рассылки: {len(users)}")
 
         for user_id in users:
             try:
-                logging.info(f"📤 Отправляем послание пользователю: {user_id}")
+                logging.info(f"📤 Отправка пользователю: {user_id}")
                 recommendation = await generate_daily_recommendation(user_id)
 
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[[
@@ -41,19 +40,10 @@ def setup_scheduler(bot: Bot):
                     reply_markup=keyboard
                 )
 
-                logging.info(f"✅ Успешно отправлено пользователю {user_id}")
+                logging.info(f"✅ Успешно отправлено: {user_id}")
 
             except Exception as e:
-                logging.warning(f"⚠️ Не удалось отправить пользователю {user_id}: {e}")
-
-    # 🧪 Тестовая задача (один раз через 1 минуту после запуска)
-    @scheduler.scheduled_job(
-        "date",
-        run_date=datetime.now(timezone("Europe/Istanbul")) + timedelta(minutes=1)
-    )
-    async def test_job():
-        now = datetime.now(timezone("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M:%S")
-        logging.info(f"🧪 Тестовая задача выполнена в {now}! Планировщик работает.")
+                logging.warning(f"⚠️ Ошибка при отправке {user_id}: {e}")
 
     scheduler.start()
     logging.info("✅ Планировщик запущен (Europe/Istanbul)")
