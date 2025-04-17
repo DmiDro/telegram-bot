@@ -23,7 +23,7 @@ def setup_scheduler(bot: Bot):
     scheduler = AsyncIOScheduler(timezone=tz_istanbul)
 
     @scheduler.scheduled_job(
-        CronTrigger(hour=13, minute=44, timezone=tz_istanbul)  # Явно указываем таймзону!
+        CronTrigger(hour=17, minute=50, timezone=tz_istanbul)  # Явно указываем таймзону!
     )
     async def send_recommendations():
         now = datetime.now(tz_istanbul).strftime("%Y-%m-%d %H:%M:%S")
