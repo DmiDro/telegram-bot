@@ -1,16 +1,14 @@
 import os
 import random
+import openai
 from dotenv import load_dotenv
-from openai import OpenAI
-from db import get_hero_list  # 👈 список героев из БД
+from db import get_hero_list
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
-    # Загружаем героев из базы данных
     heroes = await get_hero_list()
     if not heroes:
         return "⚠️ Персонажи не загружены. Попробуйте позже."
@@ -19,10 +17,8 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
     name = char["name"]
     description = char["description"]
     link = char.get("link", "")
-
     signature_html = f'<a href="{link}">{name}</a>' if link else name
 
-    # 🧠 PROMPT GPT с участием описания героя
     prompt = f"""
 Ты — {name}. Твоя суть: {description}.
 Ты даёшь короткую и вдохновляющую рекомендацию, как если бы ты был реальным человеком с таким характером.
@@ -38,7 +34,7 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
 """
 
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt.strip()}]
         )
