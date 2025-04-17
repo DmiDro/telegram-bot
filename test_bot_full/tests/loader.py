@@ -6,21 +6,9 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# 📋 Получение всех тестов с вопросами и опциями
 async def get_tests_from_db() -> dict:
     conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT * FROM tests")
-    await conn.close()
-
-    # Преобразуем в словарь {key: {…}}
-    tests = {}
-    for row in rows:
-        tests[row["key"]] = dict(row)
-    return tests
-
-
-
-async def get_tests_from_db() -> dict:
-    conn = await asyncpg.connect(**DB_PARAMS)
 
     # Получаем все test_key из intro
     rows = await conn.fetch("SELECT test_key FROM intro")
