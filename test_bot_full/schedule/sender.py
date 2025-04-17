@@ -1,14 +1,21 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from pytz import timezone  # <== обязательно
+
 from utils.gpt import generate_daily_recommendation
-from db.write import get_subscribed_users  # если ты хранишь функцию тут
+from db.write import get_subscribed_users
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 
 def setup_scheduler(bot: Bot):
-    scheduler = AsyncIOScheduler()
+    logging.info("🟡 Настройка планировщика...")
 
-    @scheduler.scheduled_job("cron", hour=9, minute=8)
+    scheduler = AsyncIOScheduler(timezone=timezone("Europe/Moscow"))  # 🕘 Москва
+
+    @scheduler.scheduled_job(
+        CronTrigger(hour=10, minute=41)  # 10:41 по Москве
+    )
     async def send_recommendations():
         users = await get_subscribed_users()
 
@@ -20,21 +27,21 @@ def setup_scheduler(bot: Bot):
                     [
                         InlineKeyboardButton(text="👍", callback_data="feedback_like"),
                         InlineKeyboardButton(text="👎", callback_data="feedback_dislike"),
-                    ],
-                    # [InlineKeyboardButton(text="📤 Поделиться", switch_inline_query="Послание на день")]
+                    ]
                 ])
 
                 await bot.send_message(
                     user_id,
                     recommendation,
                     parse_mode="HTML",
-                    disable_web_page_preview=True, # True False
+                    disable_web_page_preview=True,
                     reply_markup=keyboard
                 )
 
-                logging.info(f"Отправлено пользователю {user_id}")
+                logging.info(f"✅ Отправлено пользователю {user_id}")
 
             except Exception as e:
-                logging.warning(f"Не удалось отправить {user_id}: {e}")
+                logging.warning(f"⚠️ Не удалось отправить {user_id}: {e}")
 
     scheduler.start()
+    logging.info("✅ Планировщик запущен (МСК 09:08)")
