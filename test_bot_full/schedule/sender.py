@@ -15,7 +15,7 @@ def setup_scheduler(bot: Bot):
 
     tz_istanbul = timezone("Europe/Istanbul")
 
-    # Показываем текущее время для диагностики
+    # Диагностическое время
     logging.info(f"🕰️ Системное UTC время: {datetime.utcnow()}")
     logging.info(f"🕰️ Локальное время (Europe/Istanbul): {datetime.now(tz_istanbul)}")
     logging.info(f"🕰️ time.time(): {time.time()}")
@@ -23,7 +23,7 @@ def setup_scheduler(bot: Bot):
     scheduler = AsyncIOScheduler(timezone=tz_istanbul)
 
     @scheduler.scheduled_job(
-        CronTrigger(hour=18, minute=13, timezone=tz_istanbul)  # Явно указываем таймзону!
+        CronTrigger(hour=18, minute=13, timezone=tz_istanbul)  # Четко указана таймзона
     )
     async def send_recommendations():
         now = datetime.now(tz_istanbul).strftime("%Y-%m-%d %H:%M:%S")
@@ -37,7 +37,7 @@ def setup_scheduler(bot: Bot):
                 logging.info(f"📤 Отправка пользователю: {user_id}")
                 recommendation = await generate_daily_recommendation(user_id)
 
-                keyboard = InlineKeyboardMarkup(inline_keyboard=[[ 
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[[
                     InlineKeyboardButton(text="👍", callback_data="feedback_like"),
                     InlineKeyboardButton(text="👎", callback_data="feedback_dislike"),
                 ]])
@@ -56,4 +56,5 @@ def setup_scheduler(bot: Bot):
                 logging.warning(f"⚠️ Ошибка при отправке {user_id}: {e}")
 
     scheduler.start()
-    logging.info("✅ Планировщик запущен (Europe/Istanbul)")
+    now = datetime.now(tz_istanbul).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"✅ Планировщик запущен в {now} (Europe/Istanbul)")
