@@ -4,13 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PARAMS = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_NAME"),
-    "host": os.getenv("DB_HOST"),
-    "port": int(os.getenv("DB_PORT", 5432))
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # 🧠 Универсальная загрузка описания результата
 async def get_result_description_from_db(test_key: str, result_code: str) -> dict:
@@ -30,7 +24,7 @@ async def get_result_description_from_db(test_key: str, result_code: str) -> dic
 
     conn = None
     try:
-        conn = await asyncpg.connect(**DB_PARAMS)
+        conn = await asyncpg.connect(DATABASE_URL)
         row = await conn.fetchrow(query, result_code)
         if not row:
             print(f"❌ Результат {result_code} не найден в таблице {table_name}")
