@@ -7,18 +7,17 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
-# Импорт всех маршрутизаторов
 from handlers import commands, start, questions, unsubscribe
 from handlers.results.results_main import router as results_router
 from handlers.feedback import router as feedback_router
-from schedule.sender import setup_scheduler
+from schedule.sender import setup_scheduler  # Планировщик
 
-# === Загрузка переменных окружения ===
+# === Загрузка .env ===
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 if not TELEGRAM_BOT_TOKEN:
-    raise ValueError("❌ Переменная TELEGRAM_BOT_TOKEN не найдена в .env!")
+    raise ValueError("❌ TELEGRAM_BOT_TOKEN не найден в .env")
 
 # === Настройка логгера ===
 logging.basicConfig(
@@ -30,14 +29,14 @@ logging.basicConfig(
 bot = Bot(token=TELEGRAM_BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher(storage=MemoryStorage())
 
-# === Подключение всех маршрутизаторов ===
+# === Подключение роутеров ===
 dp.include_routers(
     commands.router,
     start.router,
     questions.router,
     unsubscribe.router,
     results_router,
-    feedback_router
+    feedback_router,
 )
 
 # === Главная точка входа ===
@@ -46,9 +45,9 @@ async def main():
 
     try:
         setup_scheduler(bot)
-        logging.info("🟢 Планировщик инициализирован.")
+        logging.info("🟢 Планировщик запущен.")
     except Exception as e:
-        logging.error(f"❌ Ошибка при запуске планировщика: {e}")
+        logging.error(f"❌ Ошибка запуска планировщика: {e}")
 
     try:
         await bot.delete_webhook(drop_pending_updates=True)
