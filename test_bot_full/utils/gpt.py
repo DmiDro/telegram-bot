@@ -6,18 +6,17 @@ from openai import AsyncOpenAI
 from db import get_hero_list
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_PROXY = os.getenv("OPENAI_PROXY")
+OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()  # ✅ Убираем \n
 
-print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))  # ✅ Вставка отладки
+print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))  # Отладка
 
-# Проверка наличия proxy и корректного формата
 http_client = httpx.AsyncClient(proxies=OPENAI_PROXY) if OPENAI_PROXY else None
 
-# Инициализация клиента
 client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
     http_client=http_client
 )
+
 
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
