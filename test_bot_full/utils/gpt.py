@@ -6,16 +6,21 @@ from openai import AsyncOpenAI
 from db import get_hero_list
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()  # ✅ Убираем \n
+OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
+
+# Заменяем socks5h → socks5 (иначе httpx не понимает)
+if OPENAI_PROXY.startswith("socks5h://"):
+    OPENAI_PROXY = "socks5://" + OPENAI_PROXY[len("socks5h://"):]
 
 print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))  # Отладка
 
-http_client = httpx.AsyncClient(proxies=OPENAI_PROXY) if OPENAI_PROXY else None
+http_client = httpx.AsyncClient(proxies={"all": OPENAI_PROXY}, transport=httpx.AsyncHTTPTransport(uds=None))
 
 client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
     http_client=http_client
 )
+
 
 
 
