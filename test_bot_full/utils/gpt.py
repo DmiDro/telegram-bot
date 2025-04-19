@@ -5,17 +5,17 @@ from openai import AsyncOpenAI
 from db import get_hero_list  # 👈 список героев из БД
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 if not OPENAI_API_KEY:
     logging.error("❌ OPENAI_API_KEY не найден в переменных окружения!")
 else:
     logging.info("🔑 OPENAI_API_KEY загружен.")
 
-# Асинхронный клиент
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
     logging.info(f"🚀 Генерация послания для user_id: {user_id}")
-    
+
     heroes = await get_hero_list()
     if not heroes:
         logging.warning("⚠️ Персонажи не загружены из БД")
