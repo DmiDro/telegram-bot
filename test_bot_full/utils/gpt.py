@@ -8,20 +8,20 @@ from db import get_hero_list
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
 
-# Заменяем socks5h → socks5 (иначе httpx не понимает)
+# Заменяем socks5h → socks5
 if OPENAI_PROXY.startswith("socks5h://"):
     OPENAI_PROXY = "socks5://" + OPENAI_PROXY[len("socks5h://"):]
 
-print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))  # Отладка
+print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))  # можно убрать после теста
 
-http_client = httpx.AsyncClient(proxies={"all": OPENAI_PROXY}, transport=httpx.AsyncHTTPTransport(uds=None))
+http_client = httpx.AsyncClient(
+    proxies={"all://": OPENAI_PROXY},  # ✅ фикс
+)
 
 client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
     http_client=http_client
 )
-
-
 
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
