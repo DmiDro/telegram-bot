@@ -1,4 +1,17 @@
+import logging
+import time
+from datetime import datetime
+
 from aiogram import Bot
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from pytz import timezone
+
+from utils.gpt import generate_daily_recommendation
+from db.write import get_subscribed_users
+
+
 def setup_scheduler(bot: Bot):
     logging.info("🟡 Настройка планировщика...")
 
@@ -20,6 +33,7 @@ def setup_scheduler(bot: Bot):
         except Exception as e:
             logging.error(f"❌ Ошибка при получении пользователей: {e}")
             return
+
 
         for user_id in users:
             try:
@@ -47,7 +61,7 @@ def setup_scheduler(bot: Bot):
     try:
         scheduler.add_job(
             send_recommendations,
-            CronTrigger(hour=17, minute=2, timezone=tz_istanbul),
+            CronTrigger(hour=17, minute=8, timezone=tz_istanbul),
             name="Ежедневная рассылка"
         )
         logging.info("📌 Задача send_recommendations добавлена в планировщик.")
