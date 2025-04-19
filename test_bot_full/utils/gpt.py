@@ -5,14 +5,16 @@ import httpx
 from openai import AsyncOpenAI
 from db import get_hero_list
 
-# Загружаем переменные
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_PROXY = os.getenv("OPENAI_PROXY")
 
-# ✅ Используем httpx вручную с прокси
+# Проверка наличия proxy и корректного формата
+http_client = httpx.AsyncClient(proxies=OPENAI_PROXY) if OPENAI_PROXY else None
+
+# Инициализация OpenAI клиента
 client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
-    http_client=httpx.AsyncClient(proxies=OPENAI_PROXY) if OPENAI_PROXY else None
+    http_client=http_client
 )
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
