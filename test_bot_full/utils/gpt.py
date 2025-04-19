@@ -2,14 +2,19 @@ import random
 import logging
 import os
 from openai import AsyncOpenAI
+from openai._httpx import AsyncHttpxClient  # ✅ Добавили для прокси
 from db import get_hero_list
 
-# Загружаем API ключ из переменных окружения (Railway)
+# 🔐 Загружаем переменные окружения
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_PROXY = os.getenv("OPENAI_PROXY")  # ✅ Прокси из Railway ENV
 
-# Инициализация клиента
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-
+# ✅ Инициализация клиента OpenAI с поддержкой socks5h-прокси
+client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY,
+    base_url="https://api.openai.com/v1",
+    http_client=AsyncHttpxClient(proxy=OPENAI_PROXY) if OPENAI_PROXY else None
+)
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
     logging.info(f"🚀 [gpt] Генерация послания для user_id: {user_id}")
