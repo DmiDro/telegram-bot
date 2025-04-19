@@ -3,7 +3,7 @@ import random
 import logging
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from db import get_hero_list  # 👈 список героев из БД
+from db import get_hero_list
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -13,11 +13,10 @@ if not OPENAI_API_KEY:
 else:
     logging.info("🔑 OPENAI_API_KEY загружен.")
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
     logging.info(f"🚀 Генерация послания для user_id: {user_id}")
-    
+
     heroes = await get_hero_list()
     if not heroes:
         logging.warning("⚠️ Персонажи не загружены из БД")
@@ -47,11 +46,13 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
 """
 
     try:
-        logging.info(f"📤 Отправка prompt в OpenAI для героя: {name}")
-        response = await client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt.strip()}]
-        )
+        async with AsyncOpenAI(api_key=OPENAI_API_KEY) as client:
+            logging.info(f"📤 Отправка prompt в OpenAI для героя: {name}")
+            response = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt.strip()}]
+            )
+
         logging.info("📦 Ответ от OpenAI получен")
 
         advice = response.choices[0].message.content.strip()
