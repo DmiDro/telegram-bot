@@ -1,3 +1,4 @@
+from aiogram import Bot
 def setup_scheduler(bot: Bot):
     logging.info("🟡 Настройка планировщика...")
 
@@ -46,7 +47,7 @@ def setup_scheduler(bot: Bot):
     try:
         scheduler.add_job(
             send_recommendations,
-            CronTrigger(hour=16, minute=41, timezone=tz_istanbul),
+            CronTrigger(hour=17, minute=2, timezone=tz_istanbul),
             name="Ежедневная рассылка"
         )
         logging.info("📌 Задача send_recommendations добавлена в планировщик.")
