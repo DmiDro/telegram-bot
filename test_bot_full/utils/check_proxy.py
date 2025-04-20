@@ -1,61 +1,50 @@
 import os
+import asyncio
 import logging
-import openai
-import socks
-import socket
+import httpx
+from openai import AsyncOpenAI
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
-)
+# Настройка логгера
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
-# Получение переменных окружения
+# Получаем переменные окружения
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_PROXY = os.getenv("OPENAI_PROXY")  # Пример: socks5://user:pass@host:port
+OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
 
-if not OPENAI_API_KEY:
-    logging.error("❌ Переменная окружения OPENAI_API_KEY не установлена.")
-    exit(1)
+# Обработка формата прокси
+if OPENAI_PROXY.startswith("socks5h://"):
+    OPENAI_PROXY = "socks5://" + OPENAI_PROXY[len("socks5h://"):]
 
-if not OPENAI_PROXY:
-    logging.error("❌ Переменная окружения OPENAI_PROXY не установлена.")
-    exit(1)
+logging.info(f"🔌 OPENAI_PROXY: {repr(OPENAI_PROXY)}")
 
-# Парсинг данных прокси
-try:
-    from urllib.parse import urlparse
-    proxy = urlparse(OPENAI_PROXY)
-    proxy_host = proxy.hostname
-    proxy_port = proxy.port
-    proxy_username = proxy.username
-    proxy_password = proxy.password
-except Exception as e:
-    logging.error(f"❌ Ошибка при разборе прокси: {e}")
-    exit(1)
-
-# Настройка прокси для сокетов
-socks.set_default_proxy(
-    socks.SOCKS5,
-    proxy_host,
-    proxy_port,
-    username=proxy_username,
-    password=proxy_password
-)
-socket.socket = socks.socksocket
-
-# Настройка OpenAI
-openai.api_key = OPENAI_API_KEY
-
-# Отправка запроса
-try:
+# Основная проверка
+async def main():
     logging.info("📤 Отправляем запрос к OpenAI через прокси...")
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": "Напиши мне короткий ответ"}],
-        timeout=10
+
+    # Настраиваем httpx-клиент с прокси
+    http_client = httpx.AsyncClient(
+        proxies={"all://": OPENAI_PROXY} if OPENAI_PROXY else None,
+        timeout=30.0
     )
-    reply = response.choices[0].message.content.strip()
-    logging.info(f"✅ Ответ от OpenAI: {reply}")
-except Exception as e:
-    logging.error(f"❌ Ошибка при обращении к OpenAI: {e}")
+
+    # Создаём клиента OpenAI
+    client = AsyncOpenAI(
+        api_key=OPENAI_API_KEY,
+        http_client=http_client
+    )
+
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "Напиши мне короткий ответ"}]
+        )
+        answer = response.choices[0].message.content.strip()
+        logging.info(f"✅ Ответ от GPT: {answer}")
+    except Exception as e:
+        logging.error(f"❌ Ошибка при обращении к OpenAI: {e}")
+    finally:
+        await http_client.aclose()
+
+# Запуск
+if __name__ == "__main__":
+    asyncio.run(main())
