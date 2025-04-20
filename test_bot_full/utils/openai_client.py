@@ -1,52 +1,40 @@
 import os
 import logging
 import asyncio
-from openai import OpenAI, AsyncOpenAI
-from openai._httpx import AsyncHttpxClient
+import httpx
+from openai import AsyncOpenAI
 
 # 🔐 Railway → Set in Variables
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-OPENAI_PROXY = os.environ.get("OPENAI_PROXY")
+OPENAI_PROXY = os.environ.get("OPENAI_PROXY", "").strip()
 
-# Синхронный клиент
-sync_client = OpenAI(
-    api_key=OPENAI_API_KEY,
-    base_url="https://api.openai.com/v1",
-    proxies={"http": OPENAI_PROXY, "https": OPENAI_PROXY} if OPENAI_PROXY else None
+# 👉 Обработка socks5h:// → socks5://
+if OPENAI_PROXY.startswith("socks5h://"):
+    OPENAI_PROXY = "socks5://" + OPENAI_PROXY[len("socks5h://"):]
+
+# ✅ httpx с прокси
+http_client = httpx.AsyncClient(
+    proxies={"all://": OPENAI_PROXY} if OPENAI_PROXY else None,
+    timeout=httpx.Timeout(30.0)
 )
 
-# Асинхронный клиент
-async_client = AsyncOpenAI(
+# Асинхронный клиент OpenAI
+client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
-    base_url="https://api.openai.com/v1",
-    http_client=AsyncHttpxClient(proxy=OPENAI_PROXY) if OPENAI_PROXY else None
+    http_client=http_client
 )
 
-# Генерация ответа с fallback
+# Генерация ответа
 async def generate_response(prompt: str, model: str = "gpt-4o") -> str:
     prompt_id = prompt.strip()[:60]
     try:
-        logging.info(f"📤 AsyncOpenAI: отправка prompt ({prompt_id})")
-        response = await async_client.chat.completions.create(
+        logging.info(f"📤 OpenAI: отправка prompt ({prompt_id})")
+        response = await client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt.strip()}]
         )
         return response.choices[0].message.content.strip()
 
-    except Exception as e_async:
-        logging.error(f"⚠️ AsyncOpenAI ошибка: {e_async} — fallback на sync.")
-
-        try:
-            loop = asyncio.get_running_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: sync_client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt.strip()}]
-                )
-            )
-            return response.choices[0].message.content.strip()
-
-        except Exception as e_sync:
-            logging.critical(f"❌ Sync fallback тоже упал: {e_sync}")
-            return "⚠️ Не удалось получить ответ от OpenAI."
+    except Exception as e:
+        logging.critical(f"❌ Ошибка OpenAI: {e}")
+        return "⚠️ Не удалось получить ответ от OpenAI."
