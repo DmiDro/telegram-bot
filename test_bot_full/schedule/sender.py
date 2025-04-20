@@ -61,7 +61,7 @@ def setup_scheduler(bot: Bot):
     try:
         scheduler.add_job(
             send_recommendations,
-            CronTrigger(hour=2, minute=38, timezone=tz_istanbul),
+            CronTrigger(hour=3, minute=15, timezone=tz_istanbul),
             name="Ежедневная рассылка"
         )
         logging.info("📌 Задача send_recommendations добавлена в планировщик.")
