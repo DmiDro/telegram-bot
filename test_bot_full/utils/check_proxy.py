@@ -11,14 +11,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
 
-logging.info(f"🔌 OPENAI_PROXY: {OPENAI_PROXY}")
+# Заменяем socks5h:// на socks5://, если нужно
+OPENAI_PROXY = OPENAI_PROXY.replace("socks5h://", "socks5://")
+
+logging.info(f"🔌 OPENAI_PROXY: {repr(OPENAI_PROXY)}")
 
 async def main():
     logging.info("📤 Подготовка клиента httpx с прокси...")
 
+    # Настройка таймаутов
     timeout = httpx.Timeout(30.0, connect=10.0)
-    proxies = {"all://": OPENAI_PROXY} if OPENAI_PROXY else None
 
+    # Настройка прокси
+    proxies = {"all://": OPENAI_PROXY} if OPENAI_PROXY else None
     async with httpx.AsyncClient(proxies=proxies, timeout=timeout) as http_client:
         logging.info("🤖 Инициализация клиента OpenAI...")
         client = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=http_client)
@@ -34,12 +39,12 @@ async def main():
             )
             answer = response.choices[0].message.content.strip()
             logging.info(f"✅ Ответ от GPT: {answer}")
-        except httpx.ProxyError as e:
-            logging.error(f"🚫 Ошибка прокси-соединения: {e}")
         except asyncio.TimeoutError:
             logging.error("⏰ Таймаут ожидания ответа от OpenAI.")
         except Exception as e:
             logging.error(f"❌ Общая ошибка при обращении к OpenAI: {e}")
+        finally:
+            logging.info("🔒 HTTP-клиент закрыт.")
 
 if __name__ == "__main__":
     asyncio.run(main())
