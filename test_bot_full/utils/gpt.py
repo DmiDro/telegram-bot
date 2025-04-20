@@ -8,16 +8,20 @@ from db import get_hero_list
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
 
-# Заменяем socks5h → socks5
+# 👉 Обработка "socks5h://" → "socks5://"
 if OPENAI_PROXY.startswith("socks5h://"):
     OPENAI_PROXY = "socks5://" + OPENAI_PROXY[len("socks5h://"):]
 
-print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))  # можно убрать после теста
+# 👉 Логгируем (можно удалить после теста)
+print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))
 
+# 👉 Инициализируем httpx клиента с поддержкой SOCKS
 http_client = httpx.AsyncClient(
-    proxies={"all://": OPENAI_PROXY},  # ✅ фикс
+    proxies={"all://": OPENAI_PROXY} if OPENAI_PROXY else None,
+    timeout=httpx.Timeout(30.0)
 )
 
+# 👉 AsyncOpenAI с кастомным клиентом
 client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
     http_client=http_client
