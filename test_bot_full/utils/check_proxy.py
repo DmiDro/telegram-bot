@@ -11,9 +11,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
 
-# Заменяем socks5h:// на socks5://, если нужно
-OPENAI_PROXY = OPENAI_PROXY.replace("socks5h://", "socks5://")
-
 logging.info(f"🔌 OPENAI_PROXY: {repr(OPENAI_PROXY)}")
 
 async def main():
