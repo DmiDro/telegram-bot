@@ -15,6 +15,22 @@ if OPENAI_PROXY.startswith("socks5h://"):
 # 👉 Логгируем (можно удалить после теста)
 print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))
 
+# 👉 Проверка работоспособности прокси
+async def test_proxy():
+    try:
+        async with httpx.AsyncClient(proxies={"all://": OPENAI_PROXY}) as client:
+            r = await client.get(
+                "https://api.openai.com/v1/models",
+                headers={"Authorization": f"Bearer {OPENAI_API_KEY}"}
+            )
+            print("✅ Прокси работает:", r.status_code)
+    except Exception as e:
+        print("❌ Ошибка подключения через прокси:", e)
+
+# Запускаем проверку отдельно
+import asyncio
+asyncio.run(test_proxy())
+
 # 👉 Инициализируем httpx клиента с поддержкой SOCKS
 http_client = httpx.AsyncClient(
     proxies={"all://": OPENAI_PROXY} if OPENAI_PROXY else None,
@@ -26,6 +42,7 @@ client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
     http_client=http_client
 )
+
 
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
