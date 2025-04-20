@@ -1,7 +1,6 @@
 import os
 import logging
 import asyncio
-import httpx
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -12,7 +11,10 @@ from handlers.results.results_main import router as results_router
 from handlers.feedback import router as feedback_router
 from schedule.sender import setup_scheduler  # Планировщик
 
-print("🐍 main.py успешно запущен — Railway исполняет этот файл.")
+import httpx
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_PROXY = os.environ.get("OPENAI_PROXY", "").strip()
 
 # === Настройка логгера ===
 logging.basicConfig(
@@ -20,36 +22,32 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 
-# === Получение токена из окружения (через Railway Variables) ===
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
+print("\U0001F40D main.py успешно запущен — Railway исполняет этот файл.")
 
-if not TELEGRAM_BOT_TOKEN:
-    raise ValueError("❌ TELEGRAM_BOT_TOKEN не найден в переменных окружения Railway")
-
-# === Проверка соединения с OpenAI через прокси ===
+# === Проверка прокси ===
 async def test_openai_proxy():
     proxy = OPENAI_PROXY
     if proxy.startswith("socks5h://"):
         proxy = "socks5://" + proxy[len("socks5h://"):]
 
     print(">>> OPENAI_PROXY:", repr(proxy))
-
     try:
-        async with httpx.AsyncClient(proxies={"all://": proxy}) as client:
+        timeout = httpx.Timeout(5.0, connect=3.0)
+        async with httpx.AsyncClient(proxies={"all://": proxy}, timeout=timeout) as client:
             r = await client.get(
                 "https://api.openai.com/v1/models",
                 headers={"Authorization": f"Bearer {OPENAI_API_KEY}"}
             )
-            if r.status_code in [200, 401]:  # 401 = valid proxy, bad key
-                print("✅ Прокси-соединение с OpenAI установлено")
-                return True
-            print(f"⚠️ Ответ от OpenAI: {r.status_code}")
+            print("✅ Прокси-соединение с OpenAI установлено", r.status_code)
+            return True
     except Exception as e:
         print("❌ Ошибка подключения к OpenAI через прокси:", e)
+        return False
 
-    return False
+# === Получение токена из Railway ===
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+if not TELEGRAM_BOT_TOKEN:
+    raise ValueError("❌ TELEGRAM_BOT_TOKEN не найден в переменных окружения Railway")
 
 # === Инициализация бота и диспетчера ===
 bot = Bot(token=TELEGRAM_BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
@@ -69,6 +67,11 @@ dp.include_routers(
 async def main():
     logging.info("⏳ Запуск бота...")
 
+    # Проверка соединения с OpenAI через прокси
+    ok = await test_openai_proxy()
+    if not ok:
+        logging.warning("⚠️ Прокси-соединение не установлено. Бот запустится, но GPT-ответы будут недоступны.")
+
     try:
         setup_scheduler(bot)
         logging.info("🟢 Планировщик запущен.")
@@ -82,9 +85,5 @@ async def main():
     except Exception as e:
         logging.critical(f"🚨 Ошибка запуска polling: {e}")
 
-# === Проверка прокси и запуск ===
 if __name__ == "__main__":
-    if asyncio.run(test_openai_proxy()):
-        asyncio.run(main())
-    else:
-        print("⛔ Прерывание запуска — нет соединения с OpenAI через прокси.")
+    asyncio.run(main())
