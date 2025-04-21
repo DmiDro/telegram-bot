@@ -44,7 +44,7 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
         response = await http_client.post(PROXY_URL, json={"prompt": prompt})
         response.raise_for_status()
 
-        data = await response.json()  # ← исправлено
+        data = response.json()  # ← исправлено
 
         advice = data.get("result") or data.get("message") or data
         if isinstance(advice, dict):
