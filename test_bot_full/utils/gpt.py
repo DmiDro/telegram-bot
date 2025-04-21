@@ -3,7 +3,10 @@ import logging
 import httpx
 from db import get_hero_list
 
-PROXY_URL = "http://45.155.102.141:8000/chat"  # URL FastAPI-прокси
+# 🌐 URL FastAPI-прокси (порт 8000 должен быть доступен)
+PROXY_URL = "http://45.155.102.141:8000/chat"
+
+# 📦 HTTP-клиент
 http_client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
@@ -41,8 +44,8 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
         response = await http_client.post(PROXY_URL, json={"prompt": prompt})
         response.raise_for_status()
 
-        data = response.json()
-        # Поддержка разных форматов ответа от FastAPI
+        data = await response.json()  # ← исправлено
+
         advice = data.get("result") or data.get("message") or data
         if isinstance(advice, dict):
             advice = str(advice)
