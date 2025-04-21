@@ -24,7 +24,7 @@ async def main():
         writer.write(message.encode())
         await writer.drain()
 
-        logging.info("📤 Отправлено:", message.strip())
+        logging.info(f"📤 Отправлено: {message.strip()}")
 
         # Читаем ответ
         data = await reader.readline()
