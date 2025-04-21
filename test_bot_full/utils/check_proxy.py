@@ -1,37 +1,40 @@
 import asyncio
 import os
 import logging
-from aiohttp import ClientSession
-from aiohttp_socks import ProxyConnector
+from aiohttp_socks import open_connection
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
-API_KEY = os.getenv("OPENAI_API_KEY")
-PROXY_URL = os.getenv("OPENAI_PROXY")
+PROXY_URL = os.getenv("OPENAI_PROXY")  # Используем ту же переменную
 
 async def main():
-    logging.info(f"🔌 Используем прокси: {PROXY_URL}")
-    connector = ProxyConnector.from_url(PROXY_URL)
+    logging.info(f"🔌 Прокси: {PROXY_URL}")
 
-    async with ClientSession(connector=connector) as session:
-        headers = {"Authorization": f"Bearer {API_KEY}"}
-        json = {
-            "model": "gpt-4o",
-            "messages": [{"role": "user", "content": "Привет, ты жив?"}]
-        }
+    try:
+        # Устанавливаем соединение через SOCKS5 прокси
+        reader, writer = await open_connection(
+            proxy_url=PROXY_URL,
+            host='tcpbin.com',  # публичный echo-сервер
+            port=4242
+        )
+        logging.info("📡 Соединение установлено!")
 
-        try:
-            logging.info("📤 Отправка запроса к OpenAI...")
-            async with session.post("https://api.openai.com/v1/chat/completions", headers=headers, json=json) as resp:
-                logging.info(f"📥 Status: {resp.status}")
-                if resp.status != 200:
-                    logging.error(f"❌ Ошибка ответа: {await resp.text()}")
-                    return
-                data = await resp.json()
-                answer = data["choices"][0]["message"]["content"].strip()
-                print("✅ Ответ от GPT:", answer)
-        except Exception as e:
-            logging.exception("❌ Ошибка при запросе к OpenAI:")
+        # Отправляем привет
+        message = "привет\n"
+        writer.write(message.encode())
+        await writer.drain()
+
+        logging.info("📤 Отправлено:", message.strip())
+
+        # Читаем ответ
+        data = await reader.readline()
+        logging.info(f"📥 Ответ от сервера: {data.decode().strip()}")
+
+        writer.close()
+        await writer.wait_closed()
+
+    except Exception as e:
+        logging.exception("❌ Ошибка соединения через прокси:")
 
 if __name__ == "__main__":
     asyncio.run(main())
