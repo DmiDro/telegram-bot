@@ -1,49 +1,13 @@
 import random
 import logging
-import os
 import httpx
-from openai import AsyncOpenAI
 from db import get_hero_list
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_PROXY = os.getenv("OPENAI_PROXY", "").strip()
+# Адрес FastAPI-прокси
+PROXY_ENDPOINT = "http://45.155.102.141:8000/chat"
 
-# 👉 Обработка "socks5h://" → "socks5://"
-if OPENAI_PROXY.startswith("socks5h://"):
-    OPENAI_PROXY = "socks5://" + OPENAI_PROXY[len("socks5h://"):]
-
-# 👉 Логгируем (можно удалить после теста)
-print(">>> OPENAI_PROXY:", repr(OPENAI_PROXY))
-
-# 👉 Проверка работоспособности прокси
-async def test_proxy():
-    try:
-        async with httpx.AsyncClient(proxies={"all://": OPENAI_PROXY}) as client:
-            r = await client.get(
-                "https://api.openai.com/v1/models",
-                headers={"Authorization": f"Bearer {OPENAI_API_KEY}"}
-            )
-            print("✅ Прокси работает:", r.status_code)
-    except Exception as e:
-        print("❌ Ошибка подключения через прокси:", e)
-
-# Запускаем проверку отдельно
-import asyncio
-asyncio.run(test_proxy())
-
-# 👉 Инициализируем httpx клиента с поддержкой SOCKS
-http_client = httpx.AsyncClient(
-    proxies={"all://": OPENAI_PROXY} if OPENAI_PROXY else None,
-    timeout=httpx.Timeout(30.0)
-)
-
-# 👉 AsyncOpenAI с кастомным клиентом
-client = AsyncOpenAI(
-    api_key=OPENAI_API_KEY,
-    http_client=http_client
-)
-
-
+# Инициализируем httpx клиент (без SOCKS5 — обычный HTTP)
+http_client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
 
 async def generate_daily_recommendation(user_id: str, archetype: str = "", maturity: str = "", socionics: str = "") -> str:
     logging.info(f"🚀 [gpt] Генерация послания для user_id: {user_id}")
@@ -76,15 +40,20 @@ async def generate_daily_recommendation(user_id: str, archetype: str = "", matur
 """.strip()
 
     try:
-        logging.info(f"📤 [gpt] Отправка prompt в OpenAI для героя: {name}")
-        response = await client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}]
+        logging.info(f"📤 [gpt] Отправка prompt через FastAPI-прокси для героя: {name}")
+        response = await http_client.post(
+            PROXY_ENDPOINT,
+            json={
+                "model": "gpt-4o",
+                "messages": [{"role": "user", "content": prompt}]
+            }
         )
-        advice = response.choices[0].message.content.strip()
-        logging.info(f"🖍️ [gpt] Получен ответ от GPT:\n{advice}")
+        response.raise_for_status()
+        data = response.json()
+        advice = data["result"].strip()
+        logging.info(f"🖍️ [gpt] Получен ответ от FastAPI-прокси:\n{advice}")
     except Exception as e:
-        logging.error(f"❌ [gpt] Ошибка генерации рекомендации: {e}")
+        logging.error(f"❌ [gpt] Ошибка при обращении к прокси: {e}")
         advice = "Сегодняшний результат зависит от твоего взгляда на него. Делай выбор — он твой."
         logging.info("📎 [gpt] Использована заглушка по ошибке.")
 
