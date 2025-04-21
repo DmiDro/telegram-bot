@@ -1,40 +1,30 @@
 import asyncio
 import os
 import logging
-from aiohttp_socks import open_connection
+from aiohttp import ClientSession
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
-PROXY_URL = os.getenv("OPENAI_PROXY")  # Используем ту же переменную
+# URL прокси-сервера (наш FastAPI-прокси)
+PROXY_SERVER_URL = os.getenv("FORWARDER_URL", "http://45.155.102.141:8000/chat")
 
 async def main():
-    logging.info(f"🔌 Прокси: {PROXY_URL}")
+    logging.info(f"\U0001f50c Тестируем FastAPI-прокси по адресу: {PROXY_SERVER_URL}")
 
-    try:
-        # Устанавливаем соединение через SOCKS5 прокси
-        reader, writer = await open_connection(
-            proxy_url=PROXY_URL,
-            host='tcpbin.com',  # публичный echo-сервер
-            port=4242
-        )
-        logging.info("📡 Соединение установлено!")
+    async with ClientSession() as session:
+        payload = {
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": "Привет, ответь мне красиво"}]
+        }
 
-        # Отправляем привет
-        message = "привет\n"
-        writer.write(message.encode())
-        await writer.drain()
-
-        logging.info(f"📤 Отправлено: {message.strip()}")
-
-        # Читаем ответ
-        data = await reader.readline()
-        logging.info(f"📥 Ответ от сервера: {data.decode().strip()}")
-
-        writer.close()
-        await writer.wait_closed()
-
-    except Exception as e:
-        logging.exception("❌ Ошибка соединения через прокси:")
+        try:
+            logging.info("\U0001f4e4 Отправка запроса к FastAPI-прокси...")
+            async with session.post(PROXY_SERVER_URL, json=payload) as resp:
+                logging.info(f"\U0001f4e5 Статус ответа: {resp.status}")
+                data = await resp.json()
+                print("\u2705 Ответ от FastAPI-прокси:", data["choices"][0]["message"]["content"])
+        except Exception as e:
+            logging.exception("❌ Ошибка при обращении к FastAPI-прокси:")
 
 if __name__ == "__main__":
     asyncio.run(main())
