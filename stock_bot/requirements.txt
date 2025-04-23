@@ -3,6 +3,7 @@ uvicorn
 requests
 apscheduler
 urllib3==1.26.6
-python-telegram-bot==20.7
+requests
+python-telegram-bot[webhooks]==20.7
 requests
 
