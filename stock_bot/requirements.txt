@@ -6,3 +6,5 @@ pydantic
 requests
 apscheduler
 urllib3==1.26.6
+nest_asyncio
+
