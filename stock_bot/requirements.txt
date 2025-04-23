@@ -1,6 +1,8 @@
-python-telegram-bot[webhooks]==20.7
-requests
 fastapi
 uvicorn
+httpx[socks]==0.25.2
+python-telegram-bot[webhooks]==20.7
+pydantic
+requests
 apscheduler
 urllib3==1.26.6
