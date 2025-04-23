@@ -1,24 +1,19 @@
-import os
-import requests
 from fastapi import FastAPI, Request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from contextlib import asynccontextmanager
 from telegram.ext import (
-    Application, ApplicationBuilder, CommandHandler,
+    ApplicationBuilder, Application, CommandHandler,
     CallbackQueryHandler, ContextTypes
 )
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+import os, requests
 
-# Переменные окружения
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Пример: https://yourproject.up.railway.app
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# FastAPI instance
-app = FastAPI()
-
-# Telegram application
 telegram_app: Application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
-# --- OpenAI логика ---
+# Telegram handlers
 def get_openai_balance():
     headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
     response = requests.get("https://api.openai.com/dashboard/billing/credit_grants", headers=headers)
@@ -27,45 +22,37 @@ def get_openai_balance():
 def format_balance_message():
     data = get_openai_balance()
     if data:
-        total = data.get("total_granted", 0)
-        used = data.get("total_used", 0)
-        available = data.get("total_available", 0)
         return (
             "*OpenAI API — отчёт*\n\n"
-            f"Остаток: ${available:.2f} из ${total:.2f}\n"
-            f"Потрачено: ${used:.2f}\n\n"
+            f"Остаток: ${data['total_available']:.2f} из ${data['total_granted']:.2f}\n"
+            f"Потрачено: ${data['total_used']:.2f}\n\n"
             "_Всё под контролем._"
         )
-    else:
-        return "Ошибка при получении баланса OpenAI."
+    return "Ошибка при получении баланса."
 
-# --- Обработчики Telegram ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton("📊 Показать баланс", callback_data="check_balance")]]
-    markup = InlineKeyboardMarkup(keyboard)
+    markup = InlineKeyboardMarkup([[InlineKeyboardButton("📊 Показать баланс", callback_data="check_balance")]])
     await update.message.reply_text("Выберите действие:", reply_markup=markup)
 
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = format_balance_message()
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    await update.message.reply_text(format_balance_message(), parse_mode="Markdown")
 
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    msg = format_balance_message()
-    await query.edit_message_text(msg, parse_mode="Markdown")
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(format_balance_message(), parse_mode="Markdown")
 
-# --- Регистрируем обработчики ---
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("check", check))
 telegram_app.add_handler(CallbackQueryHandler(button_click))
 
-# --- Установка webhook при запуске ---
-@app.on_event("startup")
-async def startup():
+# Lifespan init
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await telegram_app.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
+    yield
 
-# --- Обработка запроса от Telegram ---
+app = FastAPI(lifespan=lifespan)
+
 @app.post("/webhook")
 async def webhook(request: Request):
     data = await request.json()
