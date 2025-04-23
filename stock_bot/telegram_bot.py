@@ -45,9 +45,7 @@ def get_openai_balance():
 # --- Формирование ответа ---
 def format_balance_message():
     content = get_openai_balance()
-    return f"*Отчёт по OpenAI:*
-
-{content}"
+    return f"*Отчёт по OpenAI:*\n\n{content}"
 
 # --- Обработчики ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
