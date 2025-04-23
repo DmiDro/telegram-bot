@@ -6,4 +6,5 @@ urllib3==1.26.6
 requests
 python-telegram-bot[webhooks]==20.7
 requests
+httpx
 
