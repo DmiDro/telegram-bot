@@ -1,23 +1,26 @@
-from fastapi import FastAPI, Request
-from contextlib import asynccontextmanager
-from telegram.ext import (
-    ApplicationBuilder, Application, CommandHandler,
-    CallbackQueryHandler, ContextTypes
-)
+import os
+import requests
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-import os, requests
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
+    ContextTypes
+)
+from telegram.request import Request as TGRequest
 
+# Переменные окружения
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+PROXY_URL = os.getenv("PROXY_URL")  # SOCKS5 proxy: socks5h://user:pass@host:port
 
-telegram_app: Application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-
-# Telegram handlers
+# --- OpenAI логика ---
 def get_openai_balance():
     headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
-    response = requests.get("https://api.openai.com/dashboard/billing/credit_grants", headers=headers)
-    return response.json() if response.status_code == 200 else None
+    try:
+        response = requests.get("https://api.openai.com/dashboard/billing/credit_grants", headers=headers)
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        return None
 
 def format_balance_message():
     data = get_openai_balance()
@@ -28,10 +31,12 @@ def format_balance_message():
             f"Потрачено: ${data['total_used']:.2f}\n\n"
             "_Всё под контролем._"
         )
-    return "Ошибка при получении баланса."
+    return "Ошибка при получении баланса OpenAI."
 
+# --- Обработчики ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton("📊 Показать баланс", callback_data="check_balance")]])
+    keyboard = [[InlineKeyboardButton("📊 Показать баланс", callback_data="check_balance")]]
+    markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Выберите действие:", reply_markup=markup)
 
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -41,21 +46,18 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(format_balance_message(), parse_mode="Markdown")
 
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("check", check))
-telegram_app.add_handler(CallbackQueryHandler(button_click))
+# --- Main запуск через polling и прокси ---
+async def main():
+    request = TGRequest(proxy_url=PROXY_URL) if PROXY_URL else None
 
-# Lifespan init
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await telegram_app.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
-    yield
+    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).request(request).build()
 
-app = FastAPI(lifespan=lifespan)
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("check", check))
+    app.add_handler(CallbackQueryHandler(button_click))
 
-@app.post("/webhook")
-async def webhook(request: Request):
-    data = await request.json()
-    update = Update.de_json(data, telegram_app.bot)
-    await telegram_app.process_update(update)
-    return {"ok": True}
+    print("Запуск Telegram-бота с polling + proxy...")
+    await app.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
