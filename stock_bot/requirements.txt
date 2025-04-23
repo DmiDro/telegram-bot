@@ -7,4 +7,7 @@ requests
 python-telegram-bot[webhooks]==20.7
 requests
 httpx
+httpx[socks]==0.27.0
+pydantic
+
 
