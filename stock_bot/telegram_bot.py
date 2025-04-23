@@ -1,39 +1,81 @@
 import os
-import httpx
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
+import logging
+import requests
+import asyncio
 
-# Настройки
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
+    ContextTypes
+)
+
+# Включаем логирование для Railway
+logging.basicConfig(
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+logger.info("🚀 Бот запускается...")
+
+# Переменные окружения
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-SOCKS5_PROXY = "socks5://proxyuser:supersecretpass@127.0.0.1:8389"
-OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions"
-MODEL = "gpt-3.5-turbo"
 
-app = FastAPI()
-
-# Структура входящего запроса
-class PromptRequest(BaseModel):
-    prompt: str
-
-@app.post("/chat")
-async def chat(request: PromptRequest):
+# --- OpenAI логика ---
+def get_openai_balance():
+    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
     try:
-        async with httpx.AsyncClient(proxies=SOCKS5_PROXY, timeout=20.0) as client:
-            response = await client.post(
-                OPENAI_ENDPOINT,
-                headers={
-                    "Authorization": f"Bearer {OPENAI_API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": MODEL,
-                    "messages": [{"role": "user", "content": request.prompt}],
-                    "temperature": 0.7
-                }
-            )
-            response.raise_for_status()
-            data = response.json()
-            reply = data["choices"][0]["message"]["content"]
-            return {"result": reply.strip()}
+        response = requests.get("https://api.openai.com/dashboard/billing/credit_grants", headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.warning(f"OpenAI API вернул статус: {response.status_code}")
+            return None
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Ошибка при запросе к OpenAI: {e}")
+        return None
+
+def format_balance_message():
+    data = get_openai_balance()
+    if data:
+        total = data.get("total_granted", 0)
+        used = data.get("total_used", 0)
+        available = data.get("total_available", 0)
+        return (
+            "*OpenAI API — отчёт*\n\n"
+            f"Остаток: ${available:.2f} из ${total:.2f}\n"
+            f"Потрачено: ${used:.2f}\n\n"
+            "_Всё под контролем._"
+        )
+    return "❌ Ошибка при получении баланса OpenAI."
+
+# --- Обработчики ---
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("➡️ Команда /start получена")
+    keyboard = [[InlineKeyboardButton("📊 Показать баланс", callback_data="check_balance")]]
+    markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Выберите действие:", reply_markup=markup)
+
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("➡️ Команда /check получена")
+    await update.message.reply_text(format_balance_message(), parse_mode="Markdown")
+
+async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("🖱 Нажата кнопка 'Показать баланс'")
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(format_balance_message(), parse_mode="Markdown")
+
+# --- Основной запуск ---
+async def main():
+    logger.info("⚙️ Инициализация Telegram Application...")
+    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("check", check))
+    app.add_handler(CallbackQueryHandler(button_click))
+
+    logger.info("✅ Бот запущен через polling")
+    await app.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
